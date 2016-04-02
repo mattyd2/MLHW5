@@ -73,21 +73,21 @@ def decisiontreeAdaBoost(X, y, initialWeights):
     alphaMValues = []
     for m in range(0, 10):
         clf = DecisionTreeClassifier(max_depth=3)
-        print initialWeights
         clf.fit(X, y, sample_weight=initialWeights)
-        # Plot the tree for this iteration
-        # plotdecisiontree(X, y, clf, 3, 'AdaBoost')
         predictedValueM = clf.predict(X)
         # Add the prediction to list
         clfs.append(clf)
+        # Get a masked array of incorrect predictions, invert to get incorrect.
         incorrectPredctMask = np.invert(np.equal(predictedValueM, y.ravel()))
-        W = np.copy(initialWeights)
-        errm = initialWeights[incorrectPredctMask].sum()/W.sum()
+        print initialWeights
+        errm = initialWeights[incorrectPredctMask].sum()/initialWeights.sum()
         alpham = np.log((1.-errm)/errm)
         # Add alpham value to list
         alphaMValues.append(alpham)
         newWeight = np.exp(alpham)
         np.putmask(initialWeights, incorrectPredctMask, np.array(newWeight))
+        # Normalize the weights
+        initialWeights = initialWeights/initialWeights.sum()
     return accuracyplotAdaBoost(X, y, clfs, alphaMValues)
 
 
