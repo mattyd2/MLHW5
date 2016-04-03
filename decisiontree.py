@@ -1,4 +1,3 @@
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -74,15 +73,13 @@ def accuracyplot(classifiers, depths, X, y, X_test, y_test):
 # Question 3.1
 def decisiontreeAdaBoost(X, y, X_test, y_test):
     errm = 0
-    tot = 1
-    clfs = []
-    alphaMValues = []
     initWghts = np.ones(y.shape[0])/y.shape[0]
 
     training_error = []
     testing_error = []
 
     training_prediction = np.array([0.] * np.shape(X)[0])
+    print training_prediction
     test_prediction = np.array([0.] * np.shape(X_test)[0])
 
     for m in range(0, 10):
@@ -91,6 +88,8 @@ def decisiontreeAdaBoost(X, y, X_test, y_test):
         predictions = clf.predict(X)
 
         incorrectPredctMask = np.invert(np.equal(predictions, y))
+
+        # Calculate Empirical 0-1 Risk
         errm = initWghts[incorrectPredctMask].sum()/initWghts.sum()
 
         # Calculate Alpha
@@ -111,9 +110,10 @@ def decisiontreeAdaBoost(X, y, X_test, y_test):
 
     plt.plot(range(1, 11), training_error, 'r', label="Training Error")
     plt.plot(range(1, 11), testing_error, 'b', label="Test Error")
-    plt.title("Q2.1.3 – Performance by Tree Depth.png")
+    plottype = "AdaBoost Performance by Rounds"
+    plt.title(plottype)
     plt.legend()
-    plt.savefig("Q2.1.3 – Performance by Tree Depth.png")
+    plt.savefig(plottype)
 
 
 # Question 3.1
