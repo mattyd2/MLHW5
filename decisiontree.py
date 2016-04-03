@@ -7,6 +7,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
 
 
+# Question 2.1
 def decisiontree(depth, X, y):
 
     # Train
@@ -16,6 +17,7 @@ def decisiontree(depth, X, y):
     return clf
 
 
+# Question 2.1
 def plotdecisiontree(X, y, clf, depth, plttype):
     # Parameters
     n_classes = 2
@@ -50,15 +52,18 @@ def plotdecisiontree(X, y, clf, depth, plttype):
 
 
 # Question 2.2
-def accuracyplot(classifiers, depths):
-    X, y = prepdata('test')
-    treeErrorRate = []
+def accuracyplot(classifiers, depths, X, y, X_test, y_test):
+    testErrorRate = []
+    trainErrorRate = []
     for i in range(0, 10):
-        y_predicted = classifiers[i].predict(X)
-        treeErrorRate.append(1-accuracy_score(y, y_predicted))
-    plottype = "TreeDepth by Performance on Test Data"
-    plt.plot(depths, treeErrorRate, label="Depth by Accuracy on Test Data")
+        testpredicted = classifiers[i].predict(X_test)
+        testErrorRate.append(1-accuracy_score(y_test, testpredicted))
+        trainpredicted = classifiers[i].predict(X)
+        trainErrorRate.append(1-accuracy_score(y, trainpredicted))
+    plt.plot(depths, testErrorRate, label="Error Test Data")
+    plt.plot(depths, trainErrorRate, label="Error Train Data")
     plt.legend()
+    plottype = "Q2.1.3 Performance by Tree Depth"
     plt.title(plottype)
     plt.ylabel('Error Rate')
     plt.xlabel('Depth of Tree')
@@ -66,55 +71,67 @@ def accuracyplot(classifiers, depths):
     plt.close()
 
 
-def decisiontreeAdaBoost(X, y, initialWeights):
-    err = 0
+# Question 3.1
+def decisiontreeAdaBoost(X, y, X_test, y_test):
+    errm = 0
     tot = 1
     clfs = []
     alphaMValues = []
+    initWghts = np.ones(y.shape[0])/y.shape[0]
+
+    training_error = []
+    testing_error = []
+
+    training_prediction = np.array([0.] * np.shape(X)[0])
+    test_prediction = np.array([0.] * np.shape(X_test)[0])
+
     for m in range(0, 10):
         clf = DecisionTreeClassifier(max_depth=3)
-        clf.fit(X, y, sample_weight=initialWeights)
-        predictedValueM = clf.predict(X)
-        # Add the prediction to list
-        clfs.append(clf)
-        # Get a masked array of incorrect predictions, invert to get incorrect.
-        incorrectPredctMask = np.invert(np.equal(predictedValueM, y.ravel()))
-        print initialWeights
-        errm = initialWeights[incorrectPredctMask].sum()/initialWeights.sum()
-        alpham = np.log((1.-errm)/errm)
-        # Add alpham value to list
-        alphaMValues.append(alpham)
+        clf.fit(X, y, sample_weight=initWghts)
+        predictions = clf.predict(X)
+
+        incorrectPredctMask = np.invert(np.equal(predictions, y))
+        errm = initWghts[incorrectPredctMask].sum()/initWghts.sum()
+
+        # Calculate Alpha
+        alpham = np.log((1-errm)/errm)
+
+        training_prediction += alpham * predictions
+        test_prediction += alpham * clf.predict(X_test)
+
+        train_error = compute_error(training_prediction, y)
+        test_error = compute_error(test_prediction, y_test)
+
+        training_error.append(train_error)
+        testing_error.append(test_error)
+
+        # Calculate Alpha
         newWeight = np.exp(alpham)
-        np.putmask(initialWeights, incorrectPredctMask, np.array(newWeight))
-        # Normalize the weights
-        initialWeights = initialWeights/initialWeights.sum()
-    return accuracyplotAdaBoost(X, y, clfs, alphaMValues)
+        initWghts[predictions != y] = initWghts[predictions != y] * newWeight
 
-
-# Question 3.3
-def accuracyplotAdaBoost(X, y, clfs, alphaMValues):
-    treeErrorRate = []
-    for m in range(0, 10):
-        y_predicted = clfs[m].predict(X)
-        treeErrorRate.append(1-accuracy_score(y, y_predicted))
-    plottype = "AdaBoost Performance on Test Data"
-    plt.plot(range(0, 10), treeErrorRate, label="Accuracy of AdaBoost on Test")
+    plt.plot(range(1, 11), training_error, 'r', label="Training Error")
+    plt.plot(range(1, 11), testing_error, 'b', label="Test Error")
+    plt.title("Q2.1.3 – Performance by Tree Depth.png")
     plt.legend()
-    plt.title(plottype)
-    plt.ylabel('Error Rate')
-    plt.xlabel('Number of Iterations (m)')
-    plt.savefig(plottype)
-    plt.close()
+    plt.savefig("Q2.1.3 – Performance by Tree Depth.png")
+
+
+# Question 3.1
+def compute_error(predicted, actual):
+    pred = predicted.copy()
+    pred = np.sign(pred)
+    error = np.sum(pred != actual)
+    return (error * 1. / np.shape(predicted)[0])
 
 
 def prepdata(datatypetoload):
 
     # load dataframe
-    dfvalues = loaddata(datatypetoload)
+    data = loaddata(datatypetoload)
 
-    # We only take the two corresponding features
-    X = dfvalues[:, 1:3]
-    y = dfvalues[:, 0:1]
+    # Get X and y
+    X = data[:, [1, 2]]
+    y = data[:, 0]
 
     # Shuffle
     idx = np.arange(X.shape[0])
@@ -136,8 +153,7 @@ def loaddata(datatypetoload):
     # Load data
     fileDir = os.path.dirname(os.path.realpath('__file__'))
     if datatypetoload == 'train':
-        df = pd.read_csv(fileDir+"/data/banana_train.csv", header=None)
+        data = np.loadtxt('data/banana_train.csv', delimiter=',')
     elif datatypetoload == 'test':
-        df = pd.read_csv(fileDir+"/data/banana_test.csv", header=None)
-    dfvalues = df.values
-    return dfvalues
+        data = np.loadtxt('data/banana_test.csv', delimiter=',')
+    return data
